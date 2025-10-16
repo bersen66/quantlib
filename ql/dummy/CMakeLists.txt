@@ -7,11 +7,20 @@ ql_cpp_library(
 )
 
 ql_cpp_test (
-    NAME test_dummy
+    NAME dummy_test
     SRCS
       "dummy_test.cc"
     DEPS
-        ql::dummy
-        GTest::gtest_main
+      ql::dummy
+      GTest::gtest_main
+)
+
+ql_cpp_executable(
+    NAME dummy_benchmark
+    SRCS "dummy_benchmark.cc"
+    DEPS
+      ql::dummy
+      benchmark::benchmark
+    BENCH
 )
 

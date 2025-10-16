@@ -1,13 +1,93 @@
+# ==============================================================================
+# QL CMake Build Helpers
+#
+# This file defines a set of CMake functions that provide a lightweight
+# abstraction layer similar to Bazel build rules.
+#
+# These functions follow a consistent naming convention and automatically
+# prefix all generated targets with `ql_`, while also providing convenient
+# alias targets of the form `ql::<name>`.
+#
+# Defined functions:
+#   - ql_cpp_library()     — define a C++ library (shared or header-only)
+#   - ql_cpp_test()        — define a unit test target (integrated with CTest)
+#   - ql_cpp_executable()  — define a standalone or benchmark executable
+#
+# All functions respect the following build-time options:
+#   QL_BUILD_TESTS   — enable or disable test targets
+#   QL_BUILD_BENCH   — enable or disable benchmark targets
+#
+# Dependencies:
+#   include(GNUInstallDirs)
+#   include(CMakeParseArguments)
+#
+# Example:
+#   ql_cpp_library(
+#     NAME math
+#     SRCS "math_utils.cc"
+#     HDRS "math_utils.h"
+#     DEPS ql::core
+#   )
+#
+#   ql_cpp_test(
+#     NAME math_test
+#     SRCS "math_test.cc"
+#     DEPS ql::math GTest::gtest_main
+#   )
+#
+#   ql_cpp_executable(
+#     NAME benchmark_runner
+#     SRCS "bench_main.cc"
+#     DEPS ql::core benchmark::benchmark
+#     BENCH
+#   )
+# ==============================================================================
 include(GNUInstallDirs)
 include(CMakeParseArguments)
 
-# * HDRS   -- library public headers
-# * SRCS   -- library sources
-# * COPTS  -- library privte compiler options
-# * DEPS   -- library deps
-# * PUBLIC -- library will be exported
+# ql_cpp_library()
+#
+# CMake function to create a C++ library in the QL project style.
+#
+# Parameters:
+#   NAME:        Name of the library (required)
+#   HDRS:        List of header files (optional)
+#   SRCS:        List of source files (.cc, .cpp, etc.)
+#   DEPS:        List of dependent libraries to link against
+#   COPTS:       List of private compile options
+#
+# Options:
+#   PUBLIC:      Marks the library as publicly visible (for installation)
+#   TESTONLY:    Builds the library only when QL_BUILD_TESTS is enabled
+#   BENCHONLY:   Builds the library only when QL_BUILD_BENCH is enabled
+#
+# Behavior:
+#   - Automatically prefixes target names with 'ql_' (e.g., ql_math).
+#   - Creates alias target `ql::<name>` for convenient linking.
+#   - If no source files are provided, creates a header-only INTERFACE library.
+#   - Includes default QL include directories for both build and install interfaces.
+#   - Automatically filters out header files from SRCS if accidentally listed.
+#
+# Note:
+#   Header-only libraries are created as INTERFACE targets,
+#   while others are built as SHARED libraries.
+#
+# Usage:
+#   ql_cpp_library(
+#     NAME
+#       math
+#     HDRS
+#       "math_utils.h"
+#     SRCS
+#       "math_utils.cc"
+#     DEPS
+#       ql::core
+#     COPTS
+#       "-Wall" "-Wextra"
+#     PUBLIC
+#   )
 function(ql_cpp_library)
-    set(options PUBLIC)
+    set(options PUBLIC TESTONLY BENCHONLY)
     set(oneValueArgs NAME)
     set(multiValueArgs HDRS SRCS DEPS COPTS)
     cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -16,6 +96,14 @@ function(ql_cpp_library)
 
     if (ARGS_NAME STREQUAL "")
         message(FATAL_ERROR "Name of library is required")
+    endif()
+
+    if (NOT ${QL_BUILD_TESTS} AND ${ARGS_TESTONLY})
+        return()
+    endif()
+
+    if (NOT ${QL_BUILD_BENCH} AND ${ARGS_BENCHONLY})
+        return()
     endif()
 
     set(QL_SOURCES "${ARGS_SRCS}")
@@ -53,46 +141,39 @@ function(ql_cpp_library)
     endif()
 
     add_library(ql::${ARGS_NAME} ALIAS ${_NAME})
-
+    #TODO: Installation
 endfunction()
 
-# absl_cc_test()
+# ql_cpp_test()
 #
-# CMake function to imitate Bazel's cc_test rule.
+# CMake function to define a unit test target in the QL project style.
+# This imitates Bazel's cc_test rule.
 #
 # Parameters:
-# NAME: name of target (see Usage below)
-# SRCS: List of source files for the binary
-# DEPS: List of other libraries to be linked in to the binary targets
-# COPTS: List of private compile options
-# DEFINES: List of public defines
-# LINKOPTS: List of link options
+#   NAME:   Name of the test target (required)
+#   SRCS:   List of source files for the test binary
+#   DEPS:   List of dependent libraries to link with the test
+#   COPTS:  List of private compile options
 #
-# Note:
-# By default, absl_cc_test will always create a binary named absl_${NAME}.
-# This will also add it to ctest list as absl_${NAME}.
+# Behavior:
+#   - Creates an executable target with the specified sources.
+#   - Links it against the listed dependencies.
+#   - Registers it as a CTest target with `add_test`.
+#   - Skips creation if QL_BUILD_TESTS is disabled.
 #
 # Usage:
-# absl_cc_library(
-#   NAME
-#     awesome
-#   HDRS
-#     "a.h"
-#   SRCS
-#     "a.cc"
-#   PUBLIC
-# )
-#
-# absl_cc_test(
-#   NAME
-#     awesome_test
-#   SRCS
-#     "awesome_test.cc"
-#   DEPS
-#     absl::awesome
-#     GTest::gmock
-#     GTest::gtest_main
-# )
+#   ql_cpp_test(
+#     NAME
+#       math_test
+#     SRCS
+#       "math_test.cc"
+#     DEPS
+#       ql::math
+#       GTest::gmock
+#       GTest::gtest_main
+#     COPTS
+#       "-O0" "-g"
+#   )
 function(ql_cpp_test)
     if (NOT ${QL_BUILD_TESTS})
         return()
@@ -115,6 +196,67 @@ function(ql_cpp_test)
     target_compile_options(${_NAME} PRIVATE ${ARGS_COPTS})
     target_link_libraries(${_NAME} PUBLIC ${ARGS_DEPS})
     add_test(NAME ${_NAME} COMMAND ${_NAME})
+endfunction()
 
+# ql_cpp_executable()
+#
+# CMake function to define an executable target in the QL project style.
+#
+# Parameters:
+#   NAME:   Name of the executable (required)
+#   SRCS:   List of source files
+#   HDRS:   List of header files (optional)
+#   DEPS:   List of dependent libraries to link against
+#   COPTS:  List of private compile options
+#
+# Options:
+#   BENCH:  If specified, the target is built only when QL_BUILD_BENCH is enabled.
+#
+# Behavior:
+#   - Creates an executable with the given sources.
+#   - Applies compile options and links dependencies.
+#   - Skips creation if BENCH is specified and QL_BUILD_BENCH is disabled.
+#
+# Note:
+#   Future versions may include installation rules for executables.
+#
+# Usage:
+#   ql_cpp_executable(
+#     NAME
+#       benchmark_runner
+#     SRCS
+#       "bench_main.cc"
+#     DEPS
+#       ql::core
+#       benchmark::benchmark
+#     COPTS
+#       "-O3"
+#     BENCH
+#   )
+function(ql_cpp_executable)
+
+    cmake_parse_arguments(
+        ARGS
+        "BENCH"
+        "NAME"
+        "SRCS;COPTS;HDRS;DEPS"
+        ${ARGN}
+    )
+
+    set(_NAME ${ARGS_NAME})
+
+    if (${_NAME} STREQUAL "")
+        message(FATAL_ERROR "Name for executable must be provided")
+    endif()
+
+    if (NOT ${QL_BUILD_BENCH} AND ${ARGS_BENCH})
+        return()
+    endif()
+
+    add_executable(${_NAME} ${ARGS_SRCS})
+    target_compile_options(${_NAME} PRIVATE ${ARGS_COPTS})
+    target_link_libraries(${_NAME} PUBLIC ${ARGS_DEPS})
+
+    # TODO: Installation
 
 endfunction()
