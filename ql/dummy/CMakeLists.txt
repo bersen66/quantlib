@@ -4,6 +4,7 @@ ql_cpp_library(
       "dummy.h"
     SRCS
       "dummy.cc"
+    PUBLIC
 )
 
 ql_cpp_test (

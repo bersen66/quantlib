@@ -119,8 +119,7 @@ function(ql_cpp_library)
         set(QL_LIB_IS_HEADER_ONLY 0)
     endif()
 
-
-    if (QL_LIB_IS_HEADER_ONLY)
+    if(QL_LIB_IS_HEADER_ONLY)
         add_library(${_NAME} INTERFACE)
         target_include_directories(${_NAME}
             INTERFACE
@@ -129,19 +128,33 @@ function(ql_cpp_library)
         )
         target_link_libraries(${_NAME} INTERFACE ${ARGS_DEPS})
     else()
-        add_library(${_NAME} SHARED ${ARGS_SRCS})
-        target_include_directories(${_NAME}
-            PUBLIC
-            "$<BUILD_INTERFACE:${QL_COMMON_INCLUDE_DIRS}>"
-            "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
-        )
+        if(ARGS_PUBLIC)
+            add_library(${_NAME} SHARED ${QL_SOURCES})
+            if(WIN32)
+                # Экспорт всех символов для публичной DLL
+                set_target_properties(${_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+            endif()
+            target_include_directories(${_NAME}
+                PUBLIC
+                "$<BUILD_INTERFACE:${QL_COMMON_INCLUDE_DIRS}>"
+                "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+            )
+            target_link_libraries(${_NAME} PUBLIC ${ARGS_DEPS})
+        else()
+            # Для непубличных делаем static
+            add_library(${_NAME} STATIC ${QL_SOURCES})
+            target_include_directories(${_NAME}
+                PUBLIC
+                "$<BUILD_INTERFACE:${QL_COMMON_INCLUDE_DIRS}>"
+                "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+            )
+            target_link_libraries(${_NAME} PUBLIC ${ARGS_DEPS})
+        endif()
 
-        target_link_libraries(${_NAME} PUBLIC ${ARGS_DEPS})
         target_compile_options(${_NAME} PRIVATE ${ARGS_COPTS})
     endif()
 
     add_library(ql::${ARGS_NAME} ALIAS ${_NAME})
-    #TODO: Installation
 endfunction()
 
 # ql_cpp_test()
