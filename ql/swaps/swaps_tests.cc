@@ -1,25 +1,41 @@
 #include <gtest/gtest.h>
-#include <ql/swaps/swaps.h>
 #include <chrono>
 
+#include <ql/swaps/irs.h>
 
 TEST(Basic, Option) {
     using namespace std::chrono;
     using namespace ql::literals;
 
-    // .clang-format off
-    ql::IrsSwap irs = ql::SwapBuilder()
-        .EffectiveDate(day(1)/month(January)/year(2025))
-        .MaturityDate(day(1)/month(January)/year(2026))
-        .Coupon(0.24_percents)
-        .Notional(1'000'000)
-        .FixedLegAddDate(day(1)/month(February)/year(2025))
-        .FixedLegAddDate(day(1)/month(April)/year(2025))
-        .FixedLegAddDate(day(1)/month(July)/year(2025))
-        .FixedLegAddDate(day(1)/month(October)/year(2025))
-        .BuildIrsSwap()
+    ql::HolidayStorage holiday_storage;
+
+    holiday_storage.StaticInit()
+        ("RUS", year(2025)/January/day(1))
+        ("RUS", year(2025)/January/day(2))
+        ("RUS", year(2025)/January/day(3))
+        ("RUS", year(2025)/January/day(4))
+        ("RUS", year(2025)/January/day(5))
+        ("RUS", year(2025)/January/day(6))
+        ("RUS", year(2025)/January/day(7))
+        ("RUS", year(2025)/January/day(8))
+        ("RUS", year(2025)/January/day(9))
     ;
-    // .clang-format on
 
+    ql::IrsContract irs = ql::IrsBuilder()
+        .Coupon(ql::Percent::FromPercentage(0.24))
+        .PayFix(true)
+        .Notion(2'000'000)
+        .FixedFreq(ql::Freq::kQuarterly)
+        .FloatFreq(ql::Freq::kAnnualy)
+        .MaturityDate(day(1)/January/year(2025))
+        .EffectiveDate(day(1)/January/year(2023))
+        .Build(holiday_storage, "RUS");
 
+    for (const ql::PaymentPeriodEntry& payment : irs.FixedLeg()) {
+        ASSERT_TRUE(payment.HasKnownPayment());
+    }
+
+    for (const ql::PaymentPeriodEntry& payment : irs.FloatLeg()) {
+        ASSERT_FALSE(payment.HasKnownPayment());
+    }
 }

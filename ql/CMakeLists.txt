@@ -1,3 +1,4 @@
 add_subdirectory(types)
+add_subdirectory(calendar)
 add_subdirectory(base)
 add_subdirectory(swaps)

@@ -1,9 +1,10 @@
 ql_cpp_library(
     NAME swaps
-    HDRS "swaps.h"
-    SRCS "swaps.cc"
+    HDRS "irs.h"
+    SRCS "irs.cc"
     DEPS 
       ql::types
+      ql::calendar
       ql::generator
     PUBLIC
 )

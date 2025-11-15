@@ -11,8 +11,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(QlHelpers)
 
 
-option(QL_BUILD_TESTS "If ON Ql will build all of Ql's own tests" OFF)
-option(QL_BUILD_BENCH "If ON Ql will build all of Ql's own benchmarks" OFF)
+option(QL_BUILD_TESTS "If ON Ql will build all of Ql's own tests" ON)
+option(QL_BUILD_BENCH "If ON Ql will build all of Ql's own benchmarks" ON)
 
 message(STATUS "Building tests: ${QL_BUILD_TESTS}")
 message(STATUS "Building benchmarks: ${QL_BUILD_BENCH}")
