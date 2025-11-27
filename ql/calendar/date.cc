@@ -1,4 +1,5 @@
 #include <ql/calendar/date.h>
+#include <stdexcept>
 
 namespace chrono = std::chrono;
 
@@ -43,6 +44,10 @@ void AddMonths(DateType& ymd, unsigned months) {
     }
 }
 
+DateType NextYearBeginnning(const DateType& date) {
+    return date.year()++/1/1;
+}
+
 Generator<DateType> Period::WithFrequency(Freq freq) const {
     DateType current_date = since;
 
@@ -82,6 +87,45 @@ Generator<DateType> Period::WithFrequency(Freq freq) const {
         }
         break;
     }
+}
+
+Period::Period(const DateType& since, const DateType& until) 
+    : since(since), until(until)
+{
+    if (!Valid()) {
+        throw std::logic_error("invalid period");
+    }
+}
+
+f64 Period::ActActISDA() const {   
+    if (SameYear()) {
+        return static_cast<f64>(Days()) / DaysInYear(since);
+    }
+
+    f64 leap_days = 0;
+    f64 non_leap_days = 0;
+
+    DateType tmp = since;
+    while (true) {
+        if (tmp > until) break;
+
+        u32 difference = 0;
+        if (tmp.year() + chrono::years(1) > until.year()) {
+            difference = DayDifference(until, tmp);
+        } else {
+            difference = DaysTillTheEndOfYear(tmp);
+        }
+        
+        if (tmp.year().is_leap()) {
+            leap_days += difference;
+        } else {
+            non_leap_days += difference;
+        }
+
+        tmp = NextYearBeginnning(tmp);
+    }
+
+    return leap_days / 366.0 + non_leap_days / 365.0;
 }
 
 } // namespace ql

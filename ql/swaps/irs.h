@@ -51,6 +51,21 @@ private:
 
 class IrsContract final {
 public:
+
+    class ChronologicalIterator final {
+    public:
+
+        ChronologicalIterator(PaymentPeriodEntry* buffer, u8 start_idx)
+            : payment_periods_(buffer)
+            , current_idx_(start_idx)
+        {}
+
+    private:
+        PaymentPeriodEntry* payment_periods_;
+        u8 current_idx_;
+    };
+
+public:
     friend class IrsBuilder;
 
     [[nodiscard]] std::span<const PaymentPeriodEntry> FixedLeg() const noexcept {
@@ -60,6 +75,18 @@ public:
     [[nodiscard]] std::span<const PaymentPeriodEntry> FloatLeg() const noexcept {
         return {float_leg_, payment_periods_.end().base()};
     }
+
+    [[nodiscard]] const Percent& Coupon() const noexcept {
+        return coupon_;
+    }
+
+    [[nodiscard]] bool PayFix() const noexcept {
+        return paying_fix_;
+    }
+    //
+    // ChronologicalIterator cbegin() const {
+    //     return ChronologicalIterator(payment_periods_.data(), );
+    // }
 
 private:
 
@@ -73,6 +100,8 @@ private:
     PaymentPeriodEntry* fixed_leg_ = nullptr;
     PaymentPeriodEntry* float_leg_ = nullptr;
     Percent coupon_;
+    u8 chrono_start_idx_ = 0;
+    u8 chrono_last_idx_ = 0;
     bool paying_fix_ = false;
 };
 

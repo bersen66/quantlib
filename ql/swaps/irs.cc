@@ -37,6 +37,8 @@ namespace ql {
 
     u8 last = PaymentPeriodEntry::kNotInitialized;
     u8 curr = PaymentPeriodEntry::kNotInitialized;
+    result.chrono_start_idx_ = chronological_order.top();
+
     while (!chronological_order.empty()) {
         last = std::exchange(curr, chronological_order.top());
         chronological_order.pop();
@@ -48,6 +50,8 @@ namespace ql {
         }
         sched[last].chrono_next_idx_ = curr;
     }
+
+    result.chrono_last_idx_ = last;
 
     result.payment_periods_ = std::move(sched);
     result.fixed_leg_ = result.payment_periods_.data();

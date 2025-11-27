@@ -33,6 +33,7 @@ TEST(Basic, Option) {
 
     for (const ql::PaymentPeriodEntry& payment : irs.FixedLeg()) {
         ASSERT_TRUE(payment.HasKnownPayment());
+
     }
 
     for (const ql::PaymentPeriodEntry& payment : irs.FloatLeg()) {

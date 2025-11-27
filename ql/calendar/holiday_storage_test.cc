@@ -1,8 +1,6 @@
 #include <gtest/gtest.h>
 #include <ql/calendar/holiday_storage.h>
 
-#include "adaptors/buisness_days.h"
-
 TEST(HStorage, basic) {
     using namespace std::chrono;
 
@@ -20,7 +18,7 @@ TEST(HStorage, basic) {
     ;
 
     DateType sett = day(31)/December/2024;
-    DateType matur = day(14)/January/2025; // Всегда ли есть?
+    DateType matur = day(14)/January/2025;
     ql::Period per(sett, matur);
 
 
@@ -29,11 +27,4 @@ TEST(HStorage, basic) {
     for (const auto& day : buisness_days) {
         std::cerr << day << std::endl;
     }
-
-
-
-    // TODO: View-like adaptor
-    // for (const auto& date : per.WithFrequency(ql::Freq::kDaily) | ql::BuisnessDays(hs, "RUS")) {
-    //     std::cerr << date << std::endl;
-    // }
 }
