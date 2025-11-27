@@ -1,5 +1,5 @@
 add_subdirectory(types)
 add_subdirectory(calendar)
+add_subdirectory(curve)
 add_subdirectory(base)
 add_subdirectory(swaps)
-add_subdirectory(pricing)

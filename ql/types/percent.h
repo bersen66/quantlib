@@ -30,6 +30,7 @@ public:
         return Percent(percentage_tag, val);
     }
 
+    Percent() noexcept : value (0) {}
 
     inline f64 Percentage() const noexcept {
         return value * 100.0;
